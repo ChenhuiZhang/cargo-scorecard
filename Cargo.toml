@@ -2,6 +2,8 @@
 name = "cargo-scorecard"
 version = "0.1.0"
 edition = "2024"
+description = "Generate the OpenSSF Scorecard for the dependencies in a Rust repo."
+license = "MIT"
 
 [dependencies]
 anyhow = "1.0.100"
