@@ -1,0 +1,50 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build-rust:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Install Rust
+        run: rustup toolchain install stable --component llvm-tools-preview
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: install nextest
+        uses: taiki-e/install-action@nextest
+      - uses: Swatinem/rust-cache@v2
+      - name: Check code format
+        run: cargo fmt -- --check
+      - name: Check the package for errors
+        run: cargo check --all
+      - name: Lint rust sources
+        run: cargo clippy --all-targets --all-features --tests --benches -- -D warnings
+      - name: Check if tests exist
+        id: check_tests
+        run: |
+          if cargo test --no-run --all-features -- --list | grep -q .; then
+            echo "has_tests=true" >> $GITHUB_ENV
+          else
+            echo "has_tests=false" >> $GITHUB_ENV
+          fi
+      - name: Run nextest
+        if: env.has_tests == 'true'
+        run: cargo nextest run --all-features
